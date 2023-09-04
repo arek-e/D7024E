@@ -1,3 +1,3 @@
-module github.com/arek-e/D7024E-Group-22
+module github.com/arek-e/D7024E
 
-go 1.20
+go 1.21
