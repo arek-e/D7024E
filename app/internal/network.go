@@ -118,6 +118,10 @@ func Validate(request RPC, response RPC) bool {
 		if response.Type == "FindContactResponse" {
 			return true
 		}
+	case "StoreRequest":
+		if response.Type == "StoreResponse" {
+			return true
+		}
 	case "FindDataRequest":
 		if response.Type == "FindDataResponse" {
 			return true
