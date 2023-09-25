@@ -31,6 +31,15 @@ type FindContactResponse struct {
 	Contacts []Contact
 }
 
+type FindDataRequest struct {
+	Hash string
+}
+
+type FindDataResponse struct {
+	Data  []byte
+	Nodes []Contact // Nodes that are close to the data
+}
+
 func SerializeRPC(rpc RPC) ([]byte, error) {
 	data, err := json.Marshal(rpc)
 	if err != nil {
@@ -123,6 +132,13 @@ func (network *Network) ExtractResponseData(responseRPC RPC) (interface{}, error
 			return nil, err
 		}
 		return findContactResponse, nil
+
+	case "FindDataResponse":
+		var findDataResponse FindDataResponse
+		if err := json.Unmarshal(responseRPC.Data, &findDataResponse); err != nil {
+			return nil, err
+		}
+		return findDataResponse, nil
 
 	default:
 		return nil, fmt.Errorf("unknown Response Data type: %s", responseRPC.Type)

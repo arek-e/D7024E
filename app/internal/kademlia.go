@@ -1,6 +1,10 @@
 package internal
 
-import "github.com/arek-e/D7024E/app/utils"
+import (
+	"sync"
+
+	"github.com/arek-e/D7024E/app/utils"
+)
 
 type Kademlia struct {
 	Self      Contact // NOTE: This might not be necessary since the routing table comes with "me"
@@ -85,9 +89,39 @@ func PerformLookup(targetID KademliaID, receiver Contact, net Network, ch chan [
 	conCh <- receiver
 }
 
+// Given a hash from data, finds the closest node where the data is to be stored
 func (kademlia *Kademlia) LookupData(hash string) ([]byte, Contact) {
-	// TODO
-	return nil, Contact{}
+	net := &Network{}
+	net.Node = kademlia
+	var waitgroup sync.WaitGroup
+
+	hashID := NewKademliaID(hash)
+	shortlist := kademlia.NewLookupList(hashID)
+
+	ch := make(chan []Contact)          // channel -> returns contacts
+	targetData := make(chan []byte)     // channel -> when the data is found it is communicated through this channel
+	dataContactCh := make(chan Contact) // channel that only takes the contact that returned the data
+
+	if shortlist.Len() < alpha {
+		go PerformLookupData(hash, shortlist.Nodes[0].Node, *net, ch, targetData, dataContactCh)
+	} else {
+		// sending RPCs to the alpha nodes async
+		for i := 0; i < alpha; i++ {
+			go PerformLookupData(hash, shortlist.Nodes[i].Node, *net, ch, targetData, dataContactCh)
+		}
+	}
+
+	data, con := shortlist.updateLookupData(hash, ch, targetData, dataContactCh, *net, waitgroup)
+
+	// creating the resultdata, con :=shortlist.updateLook list
+	return data, con
+}
+
+func PerformLookupData(hash string, receiver Contact, net Network, ch chan []Contact, target chan []byte, dataContactCh chan Contact) {
+	targetData, reslist, dataContact, _ := net.SendFindDataMessage(&receiver, hash)
+	ch <- reslist
+	target <- targetData
+	dataContactCh <- dataContact
 }
 
 func (kademlia *Kademlia) Store(data []byte) {
