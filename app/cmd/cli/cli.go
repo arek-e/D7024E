@@ -2,13 +2,13 @@ package cli
 
 import (
 	"fmt"
-	"github.com/atotto/clipboard"
 	"log"
 	"os"
 	"strconv"
 	"strings"
 
 	"github.com/arek-e/D7024E/app/internal"
+	"github.com/atotto/clipboard"
 	"github.com/manifoldco/promptui"
 )
 
@@ -174,11 +174,11 @@ func (cli *CLI) putCmd(dataToStore string) {
 			fmt.Println("Data copied to clipboard.")
 		}
 	}
-
 }
 
 func (cli *CLI) getCmd(hash string) {
-
+	_, data, contact := cli.Net.Node.Lookup(hash)
+	fmt.Printf("\nFound data: %s\nFrom contact: %s\n", data, &contact)
 }
 
 func copyToClipboard(text string) error {
