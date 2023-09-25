@@ -6,11 +6,11 @@ import (
 )
 
 // Contact definition
-// stores the KademliaID, the ip address and the distance
+// stores the KademliaID, the ip address and the Distance
 type Contact struct {
 	ID       *KademliaID
 	Address  string
-	distance *KademliaID
+	Distance *KademliaID
 }
 
 // NewContact returns a new instance of a Contact
@@ -18,15 +18,15 @@ func NewContact(id *KademliaID, address string) Contact {
 	return Contact{id, address, nil}
 }
 
-// CalcDistance calculates the distance to the target and
-// fills the contacts distance field
+// CalcDistance calculates the Distance to the target and
+// fills the contacts Distance field
 func (contact *Contact) CalcDistance(target *KademliaID) {
-	contact.distance = contact.ID.CalcDistance(target)
+	contact.Distance = contact.ID.CalcDistance(target)
 }
 
-// Less returns true if contact.distance < otherContact.distance
+// Less returns true if contact.Distance < otherContact.Distance
 func (contact *Contact) Less(otherContact *Contact) bool {
-	return contact.distance.Less(otherContact.distance)
+	return contact.Distance.Less(otherContact.Distance)
 }
 
 // String returns a simple string representation of a Contact
