@@ -3,8 +3,9 @@ package internal
 import "github.com/arek-e/D7024E/app/utils"
 
 type Kademlia struct {
-	Self   Contact // NOTE: This might not be necessary since the routing table comes with "me"
-	Routes *RoutingTable
+	Self      Contact // NOTE: This might not be necessary since the routing table comes with "me"
+	Routes    *RoutingTable
+	Datastore *Datastore
 }
 
 // A system-wide concurrency parameter, such as 3.
