@@ -3,6 +3,7 @@ package internal
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 )
 
@@ -72,5 +73,31 @@ func (network *Network) CreateResponseRPC(request RPC) (RPC, error) {
 		log.Printf("Unknown RPC request: %s", request.Type)
 		return RPC{}, errors.New("Unknown RPC request type")
 	}
+	return response, nil
+}
+
+func (network *Network) HandleResponseRPC(contact *Contact, request RPC) (RPC, error) {
+	marshaledRPC, err := json.Marshal(request)
+	if err != nil {
+		return RPC{}, fmt.Errorf("error marshaling data: %v", err)
+	}
+
+	conn, err := network.sendRPC(contact, marshaledRPC)
+	if err != nil {
+		return RPC{}, fmt.Errorf("error sending UDP message: %v", err)
+	}
+	defer conn.Close()
+
+	buf := make([]byte, 5000)
+	n, _, err := conn.ReadFromUDP(buf)
+	if err != nil {
+	}
+
+	// Parse the received data to determine the response type
+	parsedResponse, err := DeserializeRPC(buf[:n])
+	if err != nil {
+
+	}
+
 	return response, nil
 }
