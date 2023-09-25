@@ -1,4 +1,4 @@
-package kademlia
+package internal
 
 const bucketSize = 20
 
