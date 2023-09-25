@@ -101,6 +101,24 @@ func (network *Network) sendRPC(contact *Contact, rpcData []byte) (*net.UDPConn,
 	return conn, nil
 }
 
+func Validate(request RPC, response RPC) bool {
+	if request.RpcID == nil || response.RpcID == nil {
+		return false
+	}
+
+	if *request.RpcID != *response.RpcID {
+		return false
+	}
+	switch request.Type {
+	case "FindContactRequest":
+		if response.Type == "FindContactResponse" {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (network *Network) SendPingMessage(contact *Contact) {
 	// TODO
 }
