@@ -93,6 +93,7 @@ func (network *Network) CreateResponseRPC(request RPC) (RPC, error) {
 			Data:   json.RawMessage(responseData),
 			RpcID:  request.RpcID,
 		}
+
 	case "FindContactRequest":
 		var findContactReq FindContactRequest
 		if err := json.Unmarshal(request.Data, &findContactReq); err != nil {
