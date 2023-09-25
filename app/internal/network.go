@@ -1,6 +1,8 @@
 package internal
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
 	"net"
 	"strconv"
@@ -68,8 +70,41 @@ func (network *Network) SendPingMessage(contact *Contact) {
 	// TODO
 }
 
-func (network *Network) SendFindContactMessage(contact *Contact) {
-	// TODO
+func (network *Network) SendFindContactMessage(contact *Contact, target *KademliaID) ([]Contact, error) {
+	findContactReq := FindContactRequest{
+		Target: target,
+	}
+
+	requestData, err := json.Marshal(findContactReq)
+	if err != nil {
+		return nil, fmt.Errorf("unable to marshal the data: %v", err)
+	}
+
+	requestRPC := RPC{
+		Type:   "FindContactRequest",
+		Sender: network.Node.Self,
+		RpcID:  NewRandomKademliaID(),
+		Data:   json.RawMessage(requestData),
+	}
+
+	response, err := network.HandleResponseRPC(contact, requestRPC)
+	if err != nil {
+		return nil, err
+	}
+
+	findContactResponse, err := network.ExtractResponseData(response)
+	if err != nil {
+		return nil, err
+	}
+
+	findContactResp, ok := findContactResponse.(FindContactResponse)
+	if !ok {
+		return nil, fmt.Errorf("expected FindContactResponse, but got %T", findContactResponse)
+	}
+
+	contacts := findContactResp.Contacts
+
+	return contacts, nil
 }
 
 func (network *Network) SendFindDataMessage(hash string) {
