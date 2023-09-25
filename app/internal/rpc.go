@@ -40,6 +40,15 @@ type FindDataResponse struct {
 	Nodes []Contact // Nodes that are close to the data
 }
 
+type StoreRequest struct {
+	Key  string // Hashed key in the request
+	Data string
+}
+
+type StoreResponse struct {
+	KeyLocation string
+}
+
 func SerializeRPC(rpc RPC) ([]byte, error) {
 	data, err := json.Marshal(rpc)
 	if err != nil {
@@ -110,6 +119,32 @@ func (network *Network) CreateResponseRPC(request RPC) (RPC, error) {
 			RpcID:  request.RpcID,
 		}
 
+	case "StoreRequest":
+		var storeReq StoreRequest
+		if err := json.Unmarshal(request.Data, &storeReq); err != nil {
+			log.Printf("Error unmarshaling StoreRequest: %v", err)
+			return RPC{}, err
+		}
+
+		network.Node.Datastore.addData(storeReq.Key, []byte(storeReq.Data))
+
+		storeResponse := StoreResponse{
+			KeyLocation: storeReq.Key,
+		}
+
+		responseData, err := json.Marshal(storeResponse)
+		if err != nil {
+			log.Printf("Error marshaling StoreResponse: %v", err)
+			return RPC{}, err
+		}
+
+		response = RPC{
+			Sender: network.Node.Self,
+			Type:   "StoreResponse",
+			Data:   json.RawMessage(responseData),
+			RpcID:  request.RpcID,
+		}
+
 	default:
 		log.Printf("Unknown RPC request: %s", request.Type)
 		return RPC{}, errors.New("Unknown RPC request type")
@@ -132,6 +167,13 @@ func (network *Network) ExtractResponseData(responseRPC RPC) (interface{}, error
 			return nil, err
 		}
 		return findContactResponse, nil
+
+	case "StoreResponse":
+		var storeResponse StoreResponse
+		if err := json.Unmarshal(responseRPC.Data, &storeResponse); err != nil {
+			return nil, err
+		}
+		return storeResponse, nil
 
 	case "FindDataResponse":
 		var findDataResponse FindDataResponse

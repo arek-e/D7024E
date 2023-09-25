@@ -124,6 +124,22 @@ func PerformLookupData(hash string, receiver Contact, net Network, ch chan []Con
 	dataContactCh <- dataContact
 }
 
-func (kademlia *Kademlia) Store(data []byte) {
-	// TODO
+func (kademlia *Kademlia) Store(data []byte) (key string) {
+	net := &Network{}
+	net.Node = kademlia
+	key = utils.Hash(string(data))
+	hashID := NewKademliaID(key)
+
+	contactsToStore, _, _ := kademlia.Lookup(hashID)
+	for _, target := range contactsToStore {
+		net.SendStoreMessage(data, &target)
+	}
+
+	return
+}
+
+// GetDataFromStore(key) returns value and boolean
+func (kademlia *Kademlia) getDataFromStore(key string) (val []byte, hasVal bool) {
+	val, hasVal = kademlia.Datastore.getData(key)
+	return
 }

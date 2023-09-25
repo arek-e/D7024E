@@ -241,6 +241,41 @@ func (network *Network) SendFindDataMessage(contact *Contact, hash string) ([]by
 	return retreivedData, findDataResp.Nodes, response.Sender, nil
 }
 
-func (network *Network) SendStoreMessage(data []byte) {
-	// TODO
+func (network *Network) SendStoreMessage(data []byte, contact *Contact) (string, error) {
+	key := utils.Hash(string(data))
+	storeReq := StoreRequest{
+		Key:  key,
+		Data: string(data),
+	}
+
+	requestData, err := json.Marshal(storeReq)
+	if err != nil {
+		return "", fmt.Errorf("unable to marshal the data: %v", err)
+	}
+
+	requestRPC := RPC{
+		Type:   "StoreRequest",
+		Sender: network.Node.Self,
+		RpcID:  NewRandomKademliaID(),
+		Data:   json.RawMessage(requestData),
+	}
+
+	response, err := network.HandleResponseRPC(contact, requestRPC)
+	if err != nil {
+		return "", err
+	}
+
+	storeResponse, err := network.ExtractResponseData(response)
+	if err != nil {
+		return "", err
+	}
+
+	storeResp, ok := storeResponse.(StoreResponse)
+	if !ok {
+		return "", fmt.Errorf("expected StoreResponse, but got %T", storeResp)
+	}
+
+	// log.Printf("STORE: received response: %+v\n", storeResp.KeyLocation)
+
+	return storeResp.KeyLocation, nil
 }
