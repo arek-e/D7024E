@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"github.com/atotto/clipboard"
 	"log"
 	"os"
 	"strconv"
@@ -152,9 +153,34 @@ func (cli *CLI) pingCmd(ipAddress string) {
 }
 
 func (cli *CLI) putCmd(dataToStore string) {
+	hash := cli.Net.Node.Store([]byte(dataToStore))
+
+	fmt.Printf("Data was stored at %v\n", hash)
+
+	prompt := promptui.Prompt{
+		Label:     "Copy to clipboard? (y/n/c)",
+		AllowEdit: true,
+	}
+	choice, err := prompt.Run()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if strings.ToLower(choice) == "y" || strings.ToLower(choice) == "c" {
+		err = copyToClipboard(hash)
+		if err != nil {
+			fmt.Printf("Error copying to clipboard: %v\n", err)
+		} else {
+			fmt.Println("Data copied to clipboard.")
+		}
+	}
 
 }
 
 func (cli *CLI) getCmd(hash string) {
 
+}
+
+func copyToClipboard(text string) error {
+	return clipboard.WriteAll(text)
 }
