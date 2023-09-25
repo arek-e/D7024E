@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/arek-e/D7024E/app/cmd/cli"
 	"github.com/arek-e/D7024E/app/internal"
 	"github.com/arek-e/D7024E/app/utils"
 )
@@ -21,6 +22,7 @@ func main() {
 	network := &internal.Network{}
 	network.Node = &self
 
+	// TODO: Fixa bootstrap IP
 	bootstrapNodeID := internal.NewRandomKademliaID()
 	bootstrapNodeAddress := utils.GetBootstrapAddress(localIP.String(), strconv.Itoa(port))
 	bootstrapNodeContact := internal.NewContact(bootstrapNodeID, bootstrapNodeAddress)
@@ -34,4 +36,15 @@ func main() {
 	}
 
 	go network.Listen(localIP.String(), port)
+
+	cli := &cli.CLI{
+		Node: &self,
+		Net:  network,
+	}
+	// Start the CLI in a goroutine
+	exitCh := make(chan struct{})
+	go cli.StartCLI(exitCh)
+
+	// Wait for the exit signal from the CLI
+	<-exitCh
 }
