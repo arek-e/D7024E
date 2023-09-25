@@ -2,6 +2,7 @@ package internal
 
 import (
 	"sort"
+	"sync"
 )
 
 type ShortList struct {

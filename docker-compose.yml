@@ -30,3 +30,4 @@ services:
 
 networks:
   kademlia_network:
+    driver: bridge
