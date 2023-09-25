@@ -73,6 +73,27 @@ func (lookuplist *ShortList) updateLookupList(targetID KademliaID, ch chan []Con
 	}
 }
 
+func (shortlist *ShortList) updateLookupData(hash string, ch chan []Contact, target chan []byte, dataContactCh chan Contact, net Network, wg sync.WaitGroup) ([]byte, Contact) {
+	for {
+		contacts := <-ch
+		targetData := <-target
+		dataContact := <-dataContactCh
+
+		// data not nil = correct data is found
+		if targetData != nil {
+			return targetData, dataContact
+		}
+
+		shortlist.refresh(contacts, []ShortListItem{})
+		nextContact, Done := shortlist.findNextLookup()
+		if Done {
+			return nil, Contact{}
+		} else {
+			go PerformLookupData(hash, nextContact, net, ch, target, dataContactCh)
+		}
+	}
+}
+
 func (shortlist *ShortList) findNextLookup() (Contact, bool) {
 	var nextItem Contact
 	done := true
