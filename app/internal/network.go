@@ -110,6 +110,10 @@ func Validate(request RPC, response RPC) bool {
 		return false
 	}
 	switch request.Type {
+	case "PingRequest":
+		if response.Type == "PingResponse" {
+			return true
+		}
 	case "FindContactRequest":
 		if response.Type == "FindContactResponse" {
 			return true
@@ -119,8 +123,43 @@ func Validate(request RPC, response RPC) bool {
 	return false
 }
 
-func (network *Network) SendPingMessage(contact *Contact) {
-	// TODO
+func (network *Network) SendPingMessage(contact *Contact) (*KademliaID, error) {
+	pingRequest := PingRequest{
+		PingID: NewRandomKademliaID(),
+	}
+
+	log.Printf("PING: %v", pingRequest.PingID)
+
+	marshalledData, err := json.Marshal(pingRequest)
+	if err != nil {
+		return nil, fmt.Errorf("unable to marshal the data: %v", err)
+	}
+
+	requestRPC := RPC{
+		Sender: network.Node.Self,
+		Type:   "PingRequest",
+		Data:   json.RawMessage(marshalledData),
+		RpcID:  NewRandomKademliaID(),
+	}
+
+	response, err := network.HandleResponseRPC(contact, requestRPC)
+	if err != nil {
+		return nil, err
+	}
+
+	pingResponse, err := network.ExtractResponseData(response)
+	if err != nil {
+		return nil, err
+	}
+
+	pingResp, ok := pingResponse.(PingResponse)
+	if !ok {
+		return nil, fmt.Errorf("expected PingResponse, but got %T", pingResp)
+	}
+
+	log.Printf("PONG: %v", pingResp.PongID)
+
+	return pingResp.PongID, nil
 }
 
 func (network *Network) SendFindContactMessage(contact *Contact, target *KademliaID) ([]Contact, error) {

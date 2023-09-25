@@ -15,6 +15,14 @@ type RPC struct {
 	Data   json.RawMessage
 }
 
+type PingRequest struct {
+	PingID *KademliaID
+}
+
+type PingResponse struct {
+	PongID *KademliaID
+}
+
 type FindContactRequest struct {
 	Target *KademliaID
 }
@@ -43,7 +51,30 @@ func DeserializeRPC(data []byte) (RPC, error) {
 func (network *Network) CreateResponseRPC(request RPC) (RPC, error) {
 	var response RPC
 	switch request.Type {
+	case "PingRequest":
+		var pingReq PingRequest
+		if err := json.Unmarshal(request.Data, &pingReq); err != nil {
+			log.Printf("Error unmarshaling PingRequest: %v", err)
+			return RPC{}, err
+		}
+		MessageID := pingReq.PingID
 
+		pingResponse := PingResponse{
+			PongID: MessageID,
+		}
+
+		responseData, err := json.Marshal(pingResponse)
+		if err != nil {
+			log.Printf("Error marshaling PingResponse: %v", err)
+			return RPC{}, err
+		}
+
+		response = RPC{
+			Sender: network.Node.Self,
+			Type:   "PingResponse",
+			Data:   json.RawMessage(responseData),
+			RpcID:  request.RpcID,
+		}
 	case "FindContactRequest":
 		var findContactReq FindContactRequest
 		if err := json.Unmarshal(request.Data, &findContactReq); err != nil {
@@ -79,6 +110,12 @@ func (network *Network) CreateResponseRPC(request RPC) (RPC, error) {
 
 func (network *Network) ExtractResponseData(responseRPC RPC) (interface{}, error) {
 	switch responseRPC.Type {
+	case "PingResponse":
+		var pingResponse PingResponse
+		if err := json.Unmarshal(responseRPC.Data, &pingResponse); err != nil {
+			return nil, err
+		}
+		return pingResponse, nil
 
 	case "FindContactResponse":
 		var findContactResponse FindContactResponse
