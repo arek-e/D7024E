@@ -76,6 +76,21 @@ func (network *Network) CreateResponseRPC(request RPC) (RPC, error) {
 	return response, nil
 }
 
+func (network *Network) ExtractResponseData(responseRPC RPC) (interface{}, error) {
+	switch responseRPC.Type {
+
+	case "FindContactResponse":
+		var findContactResponse FindContactResponse
+		if err := json.Unmarshal(responseRPC.Data, &findContactResponse); err != nil {
+			return nil, err
+		}
+		return findContactResponse, nil
+
+	default:
+		return nil, fmt.Errorf("unknown Response Data type: %s", responseRPC.Type)
+	}
+}
+
 func (network *Network) HandleResponseRPC(contact *Contact, request RPC) (RPC, error) {
 	marshaledRPC, err := json.Marshal(request)
 	if err != nil {
@@ -96,7 +111,6 @@ func (network *Network) HandleResponseRPC(contact *Contact, request RPC) (RPC, e
 	// Parse the received data to determine the response type
 	parsedResponse, err := DeserializeRPC(buf[:n])
 	if err != nil {
-
 	}
 
 	return response, nil

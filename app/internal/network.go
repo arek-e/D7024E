@@ -66,6 +66,41 @@ func sendResponse(conn *net.UDPConn, addr *net.UDPAddr, responseMsg []byte) {
 	}
 }
 
+func (network *Network) sendRPC(contact *Contact, rpcData []byte) (*net.UDPConn, error) {
+	host, port, err := net.SplitHostPort(contact.Address)
+	if err != nil {
+		log.Printf("Error: %v", err)
+		return nil, err
+	}
+
+	parsedPort, err := strconv.Atoi(port)
+	if err != nil {
+		log.Printf("Error parsing port: %v", err)
+		return nil, err
+	}
+
+	nodeAddr := net.UDPAddr{
+		IP:   net.ParseIP(host),
+		Port: parsedPort,
+	}
+
+	conn, err := net.DialUDP("udp", nil, &nodeAddr)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Error creating UDP connection: %v", err)
+		log.Print(errorMessage)
+		return nil, fmt.Errorf(errorMessage)
+	}
+
+	_, err = conn.Write(rpcData)
+	if err != nil {
+		log.Printf("Error writing data: %v", err)
+		conn.Close()
+		return nil, err
+	}
+
+	return conn, nil
+}
+
 func (network *Network) SendPingMessage(contact *Contact) {
 	// TODO
 }
