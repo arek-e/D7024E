@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"time"
 )
 
 type RPC struct {
@@ -103,15 +104,40 @@ func (network *Network) HandleResponseRPC(contact *Contact, request RPC) (RPC, e
 	}
 	defer conn.Close()
 
-	buf := make([]byte, 5000)
-	n, _, err := conn.ReadFromUDP(buf)
-	if err != nil {
-	}
+	// Use a channel to signal when data is received or when the timeout occurs
+	responseChan := make(chan RPC)
+	errorChan := make(chan error)
 
-	// Parse the received data to determine the response type
-	parsedResponse, err := DeserializeRPC(buf[:n])
-	if err != nil {
-	}
+	go func() {
+		buf := make([]byte, 5000)
+		n, _, err := conn.ReadFromUDP(buf)
+		if err != nil {
+			errorChan <- fmt.Errorf("error reading data: %v", err)
+			return
+		}
 
-	return response, nil
+		// Parse the received data to determine the response type
+		parsedResponse, err := DeserializeRPC(buf[:n])
+		if err != nil {
+			errorChan <- fmt.Errorf("error parsing RPC response: %v", err)
+			return
+		}
+
+		if Validate(request, parsedResponse) {
+			network.Node.Routes.AddContact(parsedResponse.Sender)
+		}
+
+		responseChan <- parsedResponse
+	}()
+
+	// Use a select statement to wait for data or timeout
+	select {
+	case response := <-responseChan:
+		return response, nil
+	case err := <-errorChan:
+		return RPC{}, err
+	case <-time.After(500 * time.Millisecond):
+		network.Node.Routes.RemoveContact(*contact)
+		return RPC{}, fmt.Errorf("timeout while waiting for UDP response")
+	}
 }
