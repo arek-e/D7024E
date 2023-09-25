@@ -84,8 +84,9 @@ func PerformLookup(targetID KademliaID, receiver Contact, net Network, ch chan [
 	conCh <- receiver
 }
 
-func (kademlia *Kademlia) LookupData(hash string) {
+func (kademlia *Kademlia) LookupData(hash string) ([]byte, Contact) {
 	// TODO
+	return nil, Contact{}
 }
 
 func (kademlia *Kademlia) Store(data []byte) {
