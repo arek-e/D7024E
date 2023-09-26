@@ -19,6 +19,7 @@ func NewKademliaNode(address string) (node Kademlia) {
 	id := NewKademliaID(utils.Hash(address))
 	node.Self = NewContact(id, address) // and store to contact object
 	node.Routes = NewRoutingTable(node.Self)
+	node.Datastore = NewDataStore()
 
 	return
 }
@@ -83,19 +84,13 @@ func (kademlia *Kademlia) LookupContact(target *KademliaID) (k_nodes []Contact) 
 	return
 }
 
-func PerformLookup(targetID KademliaID, receiver Contact, net Network, ch chan []Contact, conCh chan Contact) {
-	resultingNodes, _ := net.SendFindContactMessage(&receiver, &targetID)
-	ch <- resultingNodes
-	conCh <- receiver
-}
-
 // Given a hash from data, finds the closest node where the data is to be stored
 func (kademlia *Kademlia) LookupData(hash string) ([]byte, Contact) {
 	net := &Network{}
 	net.Node = kademlia
 	var waitgroup sync.WaitGroup
 
-	hashID := NewKademliaID(hash)
+	hashID := NewKademliaID(hash) // create kademlia ID from the hashed data
 	shortlist := kademlia.NewLookupList(hashID)
 
 	ch := make(chan []Contact)          // channel -> returns contacts
@@ -117,8 +112,18 @@ func (kademlia *Kademlia) LookupData(hash string) ([]byte, Contact) {
 	return data, con
 }
 
+func PerformLookup(targetID KademliaID, receiver Contact, net Network, ch chan []Contact, conCh chan Contact) {
+	resultingNodes, _ := net.SendFindContactMessage(&receiver, &targetID)
+	ch <- resultingNodes
+	conCh <- receiver
+}
+
+// runs SendFindDataMessage and loads response into two channels:
+// ch -> contacts close to the data hash
+// target -> the target data
 func PerformLookupData(hash string, receiver Contact, net Network, ch chan []Contact, target chan []byte, dataContactCh chan Contact) {
 	targetData, reslist, dataContact, _ := net.SendFindDataMessage(&receiver, hash)
+	// log.Printf("Lookup data", v ...any)
 	ch <- reslist
 	target <- targetData
 	dataContactCh <- dataContact

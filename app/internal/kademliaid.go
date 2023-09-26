@@ -9,7 +9,7 @@ import (
 const IDLength = 20
 
 // type definition of a KademliaID
-type KademliaID [IDLength]byte
+type KademliaID [IDLength]byte // A byte in go is a 8-bit uint (8*20 = 160 bit)
 
 // NewKademliaID returns a new instance of a KademliaID based on the string input
 func NewKademliaID(data string) *KademliaID {

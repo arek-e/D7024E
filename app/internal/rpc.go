@@ -31,15 +31,6 @@ type FindContactResponse struct {
 	Contacts []Contact
 }
 
-type FindDataRequest struct {
-	Hash string
-}
-
-type FindDataResponse struct {
-	Data  []byte
-	Nodes []Contact // Nodes that are close to the data
-}
-
 type StoreRequest struct {
 	Key  string // Hashed key in the request
 	Data string
@@ -47,6 +38,15 @@ type StoreRequest struct {
 
 type StoreResponse struct {
 	KeyLocation string
+}
+
+type FindDataRequest struct {
+	Hash string
+}
+
+type FindDataResponse struct {
+	Data  []byte
+	Nodes []Contact // Nodes that are close to the data
 }
 
 func SerializeRPC(rpc RPC) ([]byte, error) {
@@ -93,6 +93,7 @@ func (network *Network) CreateResponseRPC(request RPC) (RPC, error) {
 			Data:   json.RawMessage(responseData),
 			RpcID:  request.RpcID,
 		}
+
 	case "FindContactRequest":
 		var findContactReq FindContactRequest
 		if err := json.Unmarshal(request.Data, &findContactReq); err != nil {
@@ -141,6 +142,59 @@ func (network *Network) CreateResponseRPC(request RPC) (RPC, error) {
 		response = RPC{
 			Sender: network.Node.Self,
 			Type:   "StoreResponse",
+			Data:   json.RawMessage(responseData),
+			RpcID:  request.RpcID,
+		}
+
+	case "FindDataRequest":
+		var findDataReq FindDataRequest
+		if err := json.Unmarshal(request.Data, &findDataReq); err != nil {
+			log.Printf("Error unmarshaling FindDataRequest: %v", err)
+			return RPC{}, err
+		}
+		var data []byte
+		var foundHash bool
+		data, foundHash = network.Node.getDataFromStore(findDataReq.Hash)
+
+		if foundHash {
+
+			findDataResponse := FindDataResponse{
+				Data: data,
+			}
+
+			responseData, err := json.Marshal(findDataResponse)
+			if err != nil {
+				log.Printf("Error marshaling FindDataResponse: %v", err)
+				return RPC{}, err
+			}
+
+			response = RPC{
+				Sender: network.Node.Self,
+				Type:   "FindDataResponse",
+				Data:   json.RawMessage(responseData),
+				RpcID:  request.RpcID,
+			}
+
+			return response, nil
+		}
+
+		// If the hash was not found then we get the contacts closer to the hash and return in order to update
+		// shortlist
+		contacts := network.Node.Routes.FindClosestContacts(NewKademliaID(findDataReq.Hash), 20)
+
+		findDataResponse := FindDataResponse{
+			Nodes: contacts,
+		}
+
+		responseData, err := json.Marshal(findDataResponse)
+		if err != nil {
+			log.Printf("Error marshaling FindDataResponse: %v", err)
+			return RPC{}, err
+		}
+
+		response = RPC{
+			Sender: network.Node.Self,
+			Type:   "FindDataResponse",
 			Data:   json.RawMessage(responseData),
 			RpcID:  request.RpcID,
 		}

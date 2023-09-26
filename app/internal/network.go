@@ -103,15 +103,19 @@ func (network *Network) sendRPC(contact *Contact, rpcData []byte) (*net.UDPConn,
 
 func Validate(request RPC, response RPC) bool {
 	if request.RpcID == nil || response.RpcID == nil {
-		return false
+		return false // RPCID missing in either request or response
 	}
 
 	if *request.RpcID != *response.RpcID {
-		return false
+		return false // RPCID in request does not match the one in response
 	}
 	switch request.Type {
 	case "PingRequest":
 		if response.Type == "PingResponse" {
+			return true
+		}
+	case "StoreRequest":
+		if response.Type == "StoreResponse" {
 			return true
 		}
 	case "FindContactRequest":
@@ -164,6 +168,45 @@ func (network *Network) SendPingMessage(contact *Contact) (*KademliaID, error) {
 	log.Printf("PONG: %v", pingResp.PongID)
 
 	return pingResp.PongID, nil
+}
+
+func (network *Network) SendStoreMessage(data []byte, contact *Contact) (string, error) {
+	key := utils.Hash(string(data))
+	storeReq := StoreRequest{
+		Key:  key,
+		Data: string(data),
+	}
+
+	requestData, err := json.Marshal(storeReq)
+	if err != nil {
+		return "", fmt.Errorf("unable to marshal the data: %v", err)
+	}
+
+	requestRPC := RPC{
+		Type:   "StoreRequest",
+		Sender: network.Node.Self,
+		RpcID:  NewRandomKademliaID(),
+		Data:   json.RawMessage(requestData),
+	}
+
+	response, err := network.HandleResponseRPC(contact, requestRPC)
+	if err != nil {
+		return "", err
+	}
+
+	storeResponse, err := network.ExtractResponseData(response)
+	if err != nil {
+		return "", err
+	}
+
+	storeResp, ok := storeResponse.(StoreResponse)
+	if !ok {
+		return "", fmt.Errorf("expected StoreResponse, but got %T", storeResp)
+	}
+
+	// log.Printf("STORE: received response: %+v\n", storeResp.KeyLocation)
+
+	return storeResp.KeyLocation, nil
 }
 
 func (network *Network) SendFindContactMessage(contact *Contact, target *KademliaID) ([]Contact, error) {
@@ -239,43 +282,4 @@ func (network *Network) SendFindDataMessage(contact *Contact, hash string) ([]by
 	retreivedData := findDataResp.Data
 
 	return retreivedData, findDataResp.Nodes, response.Sender, nil
-}
-
-func (network *Network) SendStoreMessage(data []byte, contact *Contact) (string, error) {
-	key := utils.Hash(string(data))
-	storeReq := StoreRequest{
-		Key:  key,
-		Data: string(data),
-	}
-
-	requestData, err := json.Marshal(storeReq)
-	if err != nil {
-		return "", fmt.Errorf("unable to marshal the data: %v", err)
-	}
-
-	requestRPC := RPC{
-		Type:   "StoreRequest",
-		Sender: network.Node.Self,
-		RpcID:  NewRandomKademliaID(),
-		Data:   json.RawMessage(requestData),
-	}
-
-	response, err := network.HandleResponseRPC(contact, requestRPC)
-	if err != nil {
-		return "", err
-	}
-
-	storeResponse, err := network.ExtractResponseData(response)
-	if err != nil {
-		return "", err
-	}
-
-	storeResp, ok := storeResponse.(StoreResponse)
-	if !ok {
-		return "", fmt.Errorf("expected StoreResponse, but got %T", storeResp)
-	}
-
-	// log.Printf("STORE: received response: %+v\n", storeResp.KeyLocation)
-
-	return storeResp.KeyLocation, nil
 }
