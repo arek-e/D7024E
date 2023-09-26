@@ -12,9 +12,11 @@ import (
 var port = 1337
 
 func main() {
+	// Gets the docker containers IP
 	localIP := utils.GetOutboundIP()
 	fmt.Printf("LocalIP: %s\n", localIP.String())
 
+	// Combines the ip with port 172.20.0.3 + ":" + port
 	localAdress := fmt.Sprintf("%s:%d", localIP.String(), port)
 
 	self := internal.NewKademliaNode(localAdress)
@@ -22,8 +24,8 @@ func main() {
 	network := &internal.Network{}
 	network.Node = &self
 
-	// TODO: Fixa bootstrap IP
 	bootstrapNodeID := internal.NewRandomKademliaID()
+	// Gets the boostrap ip address "172.20.0.2"
 	bootstrapNodeAddress := utils.GetBootstrapAddress(localIP.String(), strconv.Itoa(port))
 	bootstrapNodeContact := internal.NewContact(bootstrapNodeID, bootstrapNodeAddress)
 

@@ -13,7 +13,7 @@ func TestNewLookupList(t *testing.T) {
 	}
 
 	// Create new lookupList
-	lookup := kademlia.NewLookupList(NewKademliaID("2111111400000000000000000000000000000000"))
+	lookup := kademlia.NewShortList(NewKademliaID("2111111400000000000000000000000000000000"))
 
 	// Check if len of lookup is = 20
 	want_len := 20
@@ -38,7 +38,7 @@ func TestRefresh(t *testing.T) {
 	}
 
 	// Create new lookupList
-	lookup := kademlia.NewLookupList(NewKademliaID("2111111400000000000000000000000000000000"))
+	lookup := kademlia.NewShortList(NewKademliaID("2111111400000000000000000000000000000000"))
 	alphasClosest := alpha.Routes.FindClosestContacts(NewKademliaID("2111111400000000000000000000000000000000"), 20)
 
 	// Add target to list of deadnodes

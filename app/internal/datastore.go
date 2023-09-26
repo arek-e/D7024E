@@ -12,7 +12,7 @@ func NewDataStore() *Datastore {
 	return DS
 }
 
-func (DS *Datastore) addData(key string, data []byte) {
+func (DS *Datastore) putData(key string, data []byte) {
 	DS.Store[key] = data
 }
 

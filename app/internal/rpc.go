@@ -127,7 +127,7 @@ func (network *Network) CreateResponseRPC(request RPC) (RPC, error) {
 			return RPC{}, err
 		}
 
-		network.Node.Datastore.addData(storeReq.Key, []byte(storeReq.Data))
+		network.Node.Datastore.putData(storeReq.Key, []byte(storeReq.Data))
 
 		storeResponse := StoreResponse{
 			KeyLocation: storeReq.Key,

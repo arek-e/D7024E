@@ -59,15 +59,15 @@ func (network *Network) Listen(ip string, port int) {
 	}
 }
 
-func sendResponse(conn *net.UDPConn, addr *net.UDPAddr, responseMsg []byte) {
-	_, err := conn.WriteToUDP([]byte(responseMsg), addr)
+func sendResponse(conn *net.UDPConn, addr *net.UDPAddr, serializedResponse []byte) {
+	_, err := conn.WriteToUDP(serializedResponse, addr)
 	if err != nil {
 		log.Printf("Couldn't send response: %v", err)
 	}
 }
 
 func (network *Network) sendRPC(contact *Contact, rpcData []byte) (*net.UDPConn, error) {
-	host, port, err := net.SplitHostPort(contact.Address)
+	ipAddress, port, err := net.SplitHostPort(contact.Address)
 	if err != nil {
 		log.Printf("Error: %v", err)
 		return nil, err
@@ -80,7 +80,7 @@ func (network *Network) sendRPC(contact *Contact, rpcData []byte) (*net.UDPConn,
 	}
 
 	nodeAddr := net.UDPAddr{
-		IP:   net.ParseIP(host),
+		IP:   net.ParseIP(ipAddress),
 		Port: parsedPort,
 	}
 

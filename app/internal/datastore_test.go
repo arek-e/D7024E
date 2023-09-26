@@ -13,7 +13,7 @@ func TestDatastore(t *testing.T) {
 	// Test adding data to the datastore
 	key := "testKey"
 	data := []byte("testData")
-	datastore.addData(key, data)
+	datastore.putData(key, data)
 
 	// Test getting data from the datastore
 	retrievedData, exists := datastore.getData(key)

@@ -29,7 +29,9 @@ func NewKademliaNode(address string) (node Kademlia) {
 // buckets further away than its closest neighbor. During the refreshes, u both populates its own k-buckets
 // and inserts itself into other nodes’ k-buckets as necessary
 func (u *Kademlia) JoinNetwork(w *Contact) []Contact {
+	// Add the bootstrap do the routing table
 	u.Routes.AddContact(*w)
+	// Perform a lookup on ourself
 	contacts, _, _ := u.Lookup(u.Self.ID)
 
 	return contacts
@@ -56,25 +58,23 @@ func (kademlia *Kademlia) Lookup(targetOrHash interface{}) ([]Contact, []byte, C
 func (kademlia *Kademlia) LookupContact(target *KademliaID) (k_nodes []Contact) {
 	network := &Network{}
 	network.Node = kademlia
-	ch := make(chan []Contact)  // Channel for response
-	conCh := make(chan Contact) // Channel for response contact
+	ch := make(chan []Contact)
+	conCh := make(chan Contact)
 
 	//"The first alpha contacts selected are used to create a shortlist for the search."
-	shortlist := kademlia.NewLookupList(target)
+	shortlist := kademlia.NewShortList(target)
 
-	// If there are fewer than alpha contacts in that bucket, contacts are selected from other buckets.
 	// The contact closest to the target key, closestNode, is noted.
-	// min
 	if shortlist.Len() < alpha {
-		// If shortlist length is less than alpha, perform the lookup for the first node asynchronously.
+		// If shortlist length is less than alpha, perform the lookup for the first node.
 		go PerformLookup(*target, shortlist.Nodes[0].Node, *network, ch, conCh)
 	} else {
-		// sending RPCs to the alpha nodes async
+		//"The node then sends parallel, asynchronous FIND_* RPCs to the alpha contacts in the shortlist."
 		for i := 0; i < alpha; i++ {
 			go PerformLookup(*target, shortlist.Nodes[i].Node, *network, ch, conCh)
 		}
 	}
-	shortlist.updateLookupList(*target, ch, conCh, *network)
+	shortlist.updateShortList(*target, ch, conCh, *network)
 
 	// creating the result list
 	for _, insItem := range shortlist.Nodes {
@@ -91,7 +91,7 @@ func (kademlia *Kademlia) LookupData(hash string) ([]byte, Contact) {
 	var waitgroup sync.WaitGroup
 
 	hashID := NewKademliaID(hash) // create kademlia ID from the hashed data
-	shortlist := kademlia.NewLookupList(hashID)
+	shortlist := kademlia.NewShortList(hashID)
 
 	ch := make(chan []Contact)          // channel -> returns contacts
 	targetData := make(chan []byte)     // channel -> when the data is found it is communicated through this channel

@@ -54,25 +54,25 @@ func TestJoinNetworkAndLookup(t *testing.T) {
 
 func TestStoreData(t *testing.T) {
 	// Start the bootstrap node (only listening, not joining)
-	bootstrapAddress := "127.0.0.1:1320"
+	bootstrapAddress := "127.0.0.1:1120"
 	bootstrapNode := NewKademliaNode(bootstrapAddress)
 
 	// Start the second node and simulate it joining the network with the bootstrap node
-	secondNodeAddress := "127.0.0.1:1321"
+	secondNodeAddress := "127.0.0.1:1121"
 	secondNode := NewKademliaNode(secondNodeAddress)
 
 	// Simulate the second node joining the bootNetwork with the bootstrap node
 	bootNetwork := &Network{}
 	bootNetwork.Node = &bootstrapNode
 
-	go bootNetwork.Listen("127.0.0.1", 1320)
+	go bootNetwork.Listen("127.0.0.1", 1120)
 
 	joinNetwork := &Network{}
 	joinNetwork.Node = &bootstrapNode
 
 	// Perform the join operation and get the contacts
 	_ = secondNode.JoinNetwork(&bootstrapNode.Self)
-	go joinNetwork.Listen("127.0.0.1", 1321)
+	go joinNetwork.Listen("127.0.0.1", 1121)
 
 	dataToStore := "Lagrar saker för testning"
 	hash := secondNode.Store([]byte(dataToStore))
