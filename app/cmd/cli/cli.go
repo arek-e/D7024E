@@ -22,8 +22,7 @@ var port = 1337
 // StartCLI initializes and starts the interactive CLI.
 func (cli *CLI) StartCLI(exitCh chan<- struct{}) {
 	fmt.Println("\n======Kadlab node CLI========")
-	fmt.Println("Available Commands: ping, put (p), get (g), exit (q)")
-
+	fmt.Println("Available Commands: ping, put (p), get (g), forget (f), exit (q)")
 	for {
 		prompt := promptui.Prompt{
 			Label: "Enter Command:",
@@ -70,6 +69,19 @@ func (cli *CLI) StartCLI(exitCh chan<- struct{}) {
 				cli.putCmd(dataToStore)
 			}
 		case "get", "g":
+			if len(parts) > 1 {
+				cli.getCmd(parts[1])
+			} else {
+				prompt := promptui.Prompt{
+					Label: "Insert hash",
+				}
+				hash, err := prompt.Run()
+				if err != nil {
+					log.Fatal(err)
+				}
+				cli.getCmd(hash)
+			}
+		case "forget", "f":
 			if len(parts) > 1 {
 				cli.getCmd(parts[1])
 			} else {
@@ -179,6 +191,15 @@ func (cli *CLI) putCmd(dataToStore string) {
 func (cli *CLI) getCmd(hash string) {
 	_, data, contact := cli.Net.Node.Lookup(hash)
 	fmt.Printf("\nFound data: %s\nFrom contact: %s\n", data, &contact)
+}
+
+func (cli *CLI) forgetCmd(hash string) {
+	err := cli.Net.Node.Forget(hash)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+	} else {
+		fmt.Println("Data for hash: %s \nWill be not be refreshed\n", err)
+	}
 }
 
 func copyToClipboard(text string) error {
