@@ -45,8 +45,16 @@ type FindDataRequest struct {
 }
 
 type FindDataResponse struct {
-	Data  []byte
 	Nodes []Contact // Nodes that are close to the data
+	Data  []byte
+}
+
+type RefreshRequest struct {
+	Hash string
+}
+
+type RefreshResponse struct {
+	Node Contact // Node that refreshed its data
 }
 
 func SerializeRPC(rpc RPC) ([]byte, error) {
@@ -199,9 +207,39 @@ func (network *Network) CreateResponseRPC(request RPC) (RPC, error) {
 			RpcID:  request.RpcID,
 		}
 
+		// U2. Nodes that receive the refresh request will update their TTL of the requested data hash
+	case "RefreshRequest":
+		var refreshReq RefreshRequest
+		if err := json.Unmarshal(request.Data, &refreshReq); err != nil {
+			log.Printf("Error unmarshaling FindDataRequest: %v", err)
+			return RPC{}, err
+		}
+		err := network.Node.Refresh(refreshReq.Hash)
+		if err != nil {
+			log.Printf("Could not find refresh data: %v", err)
+			return RPC{}, err
+		}
+
+		refreshResponse := RefreshResponse{
+			Node: network.Node.Self,
+		}
+
+		responseData, err := json.Marshal(refreshResponse)
+		if err != nil {
+			log.Printf("Error marshaling RefreshResponse: %v", err)
+			return RPC{}, err
+		}
+
+		response = RPC{
+			Sender: network.Node.Self,
+			Type:   "RefreshResponse",
+			Data:   json.RawMessage(responseData),
+			RpcID:  request.RpcID,
+		}
+
 	default:
 		log.Printf("Unknown RPC request: %s", request.Type)
-		return RPC{}, errors.New("Unknown RPC request type")
+		return RPC{}, errors.New("unknown RPC request type")
 	}
 	return response, nil
 }
@@ -235,6 +273,14 @@ func (network *Network) ExtractResponseData(responseRPC RPC) (interface{}, error
 			return nil, err
 		}
 		return findDataResponse, nil
+
+		// U2.
+	case "RefreshResponse":
+		var refreshResponse RefreshResponse
+		if err := json.Unmarshal(responseRPC.Data, &refreshResponse); err != nil {
+			return nil, err
+		}
+		return refreshResponse, nil
 
 	default:
 		return nil, fmt.Errorf("unknown Response Data type: %s", responseRPC.Type)
