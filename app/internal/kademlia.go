@@ -1,7 +1,9 @@
 package internal
 
 import (
+	"errors"
 	"sync"
+	"time"
 
 	"github.com/arek-e/D7024E/app/utils"
 )
@@ -138,13 +140,43 @@ func (kademlia *Kademlia) Store(data []byte) (key string) {
 	contactsToStore, _, _ := kademlia.Lookup(hashID)
 	for _, target := range contactsToStore {
 		net.SendStoreMessage(data, &target)
+
+		// U2.
+		go func(contact Contact, key string) {
+			refreshTicker := time.NewTicker(kademlia.Datastore.TTL / 2)
+			defer refreshTicker.Stop()
+
+			for range refreshTicker.C {
+				if kademlia.Datastore.checkForgetFlag(key) {
+					return
+				}
+				net.SendRefreshMessage(&contact, key)
+			}
+		}(target, key)
 	}
 
 	return
 }
 
+func (kademlia *Kademlia) Refresh(hash string) (err error) {
+	err = kademlia.Datastore.refreshData(hash)
+	if err != nil {
+		return errors.New("key not found")
+	}
+	return
+}
+
+// U3.
+func (kademlia *Kademlia) Forget(hash string) (err error) {
+	err = kademlia.Datastore.toggleForgetFlag(hash)
+	if err != nil {
+		return errors.New("key not found")
+	}
+	return
+}
+
 // GetDataFromStore(key) returns value and boolean
-func (kademlia *Kademlia) getDataFromStore(key string) (val []byte, hasVal bool) {
-	val, hasVal = kademlia.Datastore.getData(key)
+func (kademlia *Kademlia) getDataFromStore(hash string) (val []byte, hasVal bool) {
+	val, hasVal = kademlia.Datastore.getData(hash)
 	return
 }
