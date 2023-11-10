@@ -126,6 +126,11 @@ func Validate(request RPC, response RPC) bool {
 		if response.Type == "FindDataResponse" {
 			return true
 		}
+
+	case "RequestRequest":
+		if response.Type == "RequestResponse" {
+			return true
+		}
 	}
 
 	return false
@@ -204,8 +209,6 @@ func (network *Network) SendStoreMessage(data []byte, contact *Contact) (string,
 		return "", fmt.Errorf("expected StoreResponse, but got %T", storeResp)
 	}
 
-	// log.Printf("STORE: received response: %+v\n", storeResp.KeyLocation)
-
 	return storeResp.KeyLocation, nil
 }
 
@@ -282,4 +285,40 @@ func (network *Network) SendFindDataMessage(contact *Contact, hash string) ([]by
 	retreivedData := findDataResp.Data
 
 	return retreivedData, findDataResp.Nodes, response.Sender, nil
+}
+
+func (network *Network) SendRefreshMessage(contact *Contact, hash string) (Contact, Contact, error) {
+	refreshReq := RefreshRequest{
+		Hash: hash,
+	}
+
+	requestData, err := json.Marshal(refreshReq)
+	if err != nil {
+		return Contact{}, Contact{}, fmt.Errorf("unable to marshal the data: %v", err)
+	}
+
+	requestRPC := RPC{
+		Type:   "RequestRequest",
+		Sender: network.Node.Self,
+		RpcID:  NewRandomKademliaID(),
+		Data:   json.RawMessage(requestData),
+	}
+
+	response, err := network.HandleResponseRPC(contact, requestRPC)
+	if err != nil {
+		log.Printf("Response is invalid: %+v", response)
+		return Contact{}, Contact{}, err
+	}
+
+	refreshResponse, err := network.ExtractResponseData(response)
+	if err != nil {
+		return Contact{}, Contact{}, err
+	}
+
+	refreshResp, ok := refreshResponse.(RefreshResponse)
+	if !ok {
+		return Contact{}, Contact{}, fmt.Errorf("expected RefreshResponse, but got %T", refreshResponse)
+	}
+
+	return refreshResp.Node, response.Sender, nil
 }

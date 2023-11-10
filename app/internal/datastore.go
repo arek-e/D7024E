@@ -9,7 +9,7 @@ import (
 type Datastore struct {
 	Store map[string]DataEntry
 	TTL   time.Duration // U1.
-	mu    sync.Mutex
+	mu    sync.Mutex    // U6.
 }
 
 // Refactor the entry since all three share the same hash string
