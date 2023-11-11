@@ -170,6 +170,13 @@ func (network *Network) CreateResponseRPC(request RPC) (RPC, error) {
 				Data: data,
 			}
 
+			// U2. Refresh when the data is transmitted
+			err := network.Node.Refresh(findDataReq.Hash)
+			if err != nil {
+				log.Printf("Could not find refresh data: %v", err)
+				return RPC{}, err
+			}
+
 			responseData, err := json.Marshal(findDataResponse)
 			if err != nil {
 				log.Printf("Error marshaling FindDataResponse: %v", err)

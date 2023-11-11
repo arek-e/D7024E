@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+const TTL_AMOUNT = 10
+
 type Datastore struct {
 	Store map[string]DataEntry
 	TTL   time.Duration // U1.
@@ -23,7 +25,7 @@ type DataEntry struct {
 func NewDataStore() *Datastore {
 	DS := &Datastore{}
 	DS.Store = make(map[string]DataEntry)
-	DS.TTL = 20 * time.Second
+	DS.TTL = TTL_AMOUNT * time.Second
 
 	return DS
 }
@@ -49,9 +51,6 @@ func (DS *Datastore) getData(key string) (val []byte, hasVal bool) {
 			return nil, false
 		}
 
-		if err := DS.refreshData(key); err != nil {
-			return nil, false
-		}
 		return entry.Data, true
 	}
 	return nil, false
@@ -80,6 +79,8 @@ func (DS *Datastore) refreshData(key string) error {
 func (DS *Datastore) toggleForgetFlag(key string) error {
 	DS.mu.Lock()
 	defer DS.mu.Unlock()
+
+	log.Printf("Check hash %v", key)
 
 	entry, found := DS.Store[key]
 	if !found {

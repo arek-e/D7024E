@@ -135,6 +135,7 @@ func (kademlia *Kademlia) Store(data []byte) (key string) {
 	net := &Network{}
 	net.Node = kademlia
 	key = utils.Hash(string(data))
+	kademlia.Datastore.putData(key, data)
 	hashID := NewKademliaID(key)
 
 	contactsToStore, _, _ := kademlia.Lookup(hashID)
@@ -156,9 +157,11 @@ func (kademlia *Kademlia) Store(data []byte) (key string) {
 					if err != nil {
 						log.Printf("Error when refreshing: %v", err)
 					}
+					// TODO: Change so that a log file
 					log.Printf("Refreshed data at: %v", refreshedContact.Address)
 
 				case <-time.After(kademlia.Datastore.TTL):
+					log.Println("TTL elapsed. Exiting goroutine.")
 					return
 				}
 			}
