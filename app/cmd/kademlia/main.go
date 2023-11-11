@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/arek-e/D7024E/app/cmd/api"
 	"github.com/arek-e/D7024E/app/cmd/cli"
 	"github.com/arek-e/D7024E/app/internal"
 	"github.com/arek-e/D7024E/app/utils"
@@ -43,9 +44,15 @@ func main() {
 		Node: &self,
 		Net:  network,
 	}
-	// Start the CLI in a goroutine
+
+	api := &api.API{
+		Node: &self,
+		Net:  network,
+	}
+	// Start the CLI and API in a goroutine
 	exitCh := make(chan struct{})
 	go cli.StartCLI(exitCh)
+	go api.StartAPI(localIP.String(), exitCh)
 
 	// Wait for the exit signal from the CLI
 	<-exitCh

@@ -14,19 +14,19 @@ services:
     deploy:
       mode: replicated
       replicas: 50
-      #        resources:
-      #           limits:
-      #              cpus: "0.1"
-      #              memory: 50M
       restart_policy:
         condition: on-failure
         delay: 5s
         max_attempts: 3
         window: 10s
-    #    ports:
-    #      - "4000:80"
     networks:
       - kademlia_network
+    # environment:
+    #   - API_PORT=2337 # Set the static port inside the container
+    ports:
+      - "2337-2386"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
 networks:
   kademlia_network:
