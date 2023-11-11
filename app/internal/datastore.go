@@ -2,6 +2,7 @@ package internal
 
 import (
 	"errors"
+	"log"
 	"sync"
 	"time"
 )
@@ -22,7 +23,7 @@ type DataEntry struct {
 func NewDataStore() *Datastore {
 	DS := &Datastore{}
 	DS.Store = make(map[string]DataEntry)
-	DS.TTL = 10 * time.Second
+	DS.TTL = 20 * time.Second
 
 	return DS
 }
@@ -43,6 +44,7 @@ func (DS *Datastore) getData(key string) (val []byte, hasVal bool) {
 	entry, found := DS.Store[key]
 	if found {
 		if time.Now().After(entry.Time) {
+			log.Printf("Data is expired: %v", key)
 			delete(DS.Store, key)
 			return nil, false
 		}
@@ -67,7 +69,7 @@ func (DS *Datastore) refreshData(key string) error {
 
 	entry, found := DS.Store[key]
 	if !found {
-		return errors.New("key was not found")
+		return errors.New("refreshData: key was not found")
 	}
 	entry.Time = DS.getExpirationTime()
 	DS.Store[key] = entry
@@ -81,7 +83,7 @@ func (DS *Datastore) toggleForgetFlag(key string) error {
 
 	entry, found := DS.Store[key]
 	if !found {
-		return errors.New("key was not found")
+		return errors.New("toggleForgetFlag: key was not found")
 	}
 	entry.Forget = !entry.Forget
 	DS.Store[key] = entry
@@ -93,9 +95,6 @@ func (DS *Datastore) checkForgetFlag(key string) bool {
 	DS.mu.Lock()
 	defer DS.mu.Unlock()
 
-	entry, found := DS.Store[key]
-	if !found {
-		return true
-	}
+	entry := DS.Store[key]
 	return entry.Forget
 }

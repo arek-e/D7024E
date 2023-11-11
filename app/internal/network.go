@@ -287,18 +287,18 @@ func (network *Network) SendFindDataMessage(contact *Contact, hash string) ([]by
 	return retreivedData, findDataResp.Nodes, response.Sender, nil
 }
 
-func (network *Network) SendRefreshMessage(contact *Contact, hash string) (Contact, Contact, error) {
+func (network *Network) SendRefreshMessage(contact *Contact, hash string) (Contact, error) {
 	refreshReq := RefreshRequest{
 		Hash: hash,
 	}
 
 	requestData, err := json.Marshal(refreshReq)
 	if err != nil {
-		return Contact{}, Contact{}, fmt.Errorf("unable to marshal the data: %v", err)
+		return Contact{}, fmt.Errorf("unable to marshal the data: %v", err)
 	}
 
 	requestRPC := RPC{
-		Type:   "RequestRequest",
+		Type:   "RefreshRequest",
 		Sender: network.Node.Self,
 		RpcID:  NewRandomKademliaID(),
 		Data:   json.RawMessage(requestData),
@@ -307,18 +307,18 @@ func (network *Network) SendRefreshMessage(contact *Contact, hash string) (Conta
 	response, err := network.HandleResponseRPC(contact, requestRPC)
 	if err != nil {
 		log.Printf("Response is invalid: %+v", response)
-		return Contact{}, Contact{}, err
+		return Contact{}, err
 	}
 
 	refreshResponse, err := network.ExtractResponseData(response)
 	if err != nil {
-		return Contact{}, Contact{}, err
+		return Contact{}, err
 	}
 
 	refreshResp, ok := refreshResponse.(RefreshResponse)
 	if !ok {
-		return Contact{}, Contact{}, fmt.Errorf("expected RefreshResponse, but got %T", refreshResponse)
+		return Contact{}, fmt.Errorf("expected RefreshResponse, but got %T", refreshResponse)
 	}
 
-	return refreshResp.Node, response.Sender, nil
+	return refreshResp.Node, nil
 }

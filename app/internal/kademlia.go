@@ -1,7 +1,7 @@
 package internal
 
 import (
-	"errors"
+	"log"
 	"sync"
 	"time"
 
@@ -146,11 +146,21 @@ func (kademlia *Kademlia) Store(data []byte) (key string) {
 			refreshTicker := time.NewTicker(kademlia.Datastore.TTL / 2)
 			defer refreshTicker.Stop()
 
-			for range refreshTicker.C {
-				if kademlia.Datastore.checkForgetFlag(key) {
+			for {
+				select {
+				case <-refreshTicker.C:
+					if kademlia.Datastore.checkForgetFlag(key) {
+						return
+					}
+					refreshedContact, err := net.SendRefreshMessage(&contact, key)
+					if err != nil {
+						log.Printf("Error when refreshing: %v", err)
+					}
+					log.Printf("Refreshed data at: %v", refreshedContact.Address)
+
+				case <-time.After(kademlia.Datastore.TTL):
 					return
 				}
-				net.SendRefreshMessage(&contact, key)
 			}
 		}(target, key)
 	}
@@ -161,7 +171,7 @@ func (kademlia *Kademlia) Store(data []byte) (key string) {
 func (kademlia *Kademlia) Refresh(hash string) (err error) {
 	err = kademlia.Datastore.refreshData(hash)
 	if err != nil {
-		return errors.New("key not found")
+		return err
 	}
 	return
 }
@@ -170,7 +180,7 @@ func (kademlia *Kademlia) Refresh(hash string) (err error) {
 func (kademlia *Kademlia) Forget(hash string) (err error) {
 	err = kademlia.Datastore.toggleForgetFlag(hash)
 	if err != nil {
-		return errors.New("key not found")
+		return err
 	}
 	return
 }

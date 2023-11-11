@@ -83,7 +83,7 @@ func (cli *CLI) StartCLI(exitCh chan<- struct{}) {
 			}
 		case "forget", "f":
 			if len(parts) > 1 {
-				cli.getCmd(parts[1])
+				cli.forgetCmd(parts[1])
 			} else {
 				prompt := promptui.Prompt{
 					Label: "Insert hash",
@@ -92,13 +92,13 @@ func (cli *CLI) StartCLI(exitCh chan<- struct{}) {
 				if err != nil {
 					log.Fatal(err)
 				}
-				cli.getCmd(hash)
+				cli.forgetCmd(hash)
 			}
 		case "exit", "q":
 			fmt.Println("Exiting the CLI...")
 			exitCh <- struct{}{}
 		default:
-			fmt.Println("Command not recognized. Available Commands: ping, put, get, exit")
+			fmt.Println("Command not recognized. Available Commands: ping, put, get, forget, exit")
 		}
 	}
 }
@@ -144,11 +144,24 @@ func (cli *CLI) executeCommand(command string, exitCh chan<- struct{}) {
 			}
 			cli.getCmd(hash)
 		}
+	case "forget", "f":
+		if len(os.Args) > 2 {
+			cli.forgetCmd(os.Args[2])
+		} else {
+			prompt := promptui.Prompt{
+				Label: "Insert hash",
+			}
+			hash, err := prompt.Run()
+			if err != nil {
+				log.Fatal(err)
+			}
+			cli.forgetCmd(hash)
+		}
 	case "exit", "q":
 		fmt.Println("Exiting the CLI...")
 		exitCh <- struct{}{}
 	default:
-		fmt.Println("Command not recognized. Available Commands: ping, put, get, exit")
+		fmt.Println("Command not recognized. Available Commands: ping, put, get, forget, exit")
 	}
 }
 
@@ -198,7 +211,7 @@ func (cli *CLI) forgetCmd(hash string) {
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 	} else {
-		fmt.Println("Data for hash: %s \nWill be not be refreshed\n", err)
+		fmt.Printf("Data for hash: %v \nWill be not be refreshed\n", hash)
 	}
 }
 
