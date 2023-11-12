@@ -339,7 +339,9 @@ func (network *Network) HandleResponseRPC(contact *Contact, request RPC) (RPC, e
 	case err := <-errorChan:
 		return RPC{}, err
 	case <-time.After(500 * time.Millisecond):
+		network.Node.mu.Lock()
 		network.Node.Routes.RemoveContact(*contact)
+		network.Node.mu.Unlock()
 		return RPC{}, fmt.Errorf("timeout while waiting for UDP response")
 	}
 }

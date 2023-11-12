@@ -12,6 +12,7 @@ type Kademlia struct {
 	Self      Contact // NOTE: This might not be necessary since the routing table comes with "me"
 	Routes    *RoutingTable
 	Datastore *Datastore
+	mu        sync.Mutex
 }
 
 // A system-wide concurrency parameter, such as 3.
@@ -34,7 +35,9 @@ func (u *Kademlia) JoinNetwork(w *Contact) []Contact {
 	// Add the bootstrap do the routing table
 	u.Routes.AddContact(*w)
 	// Perform a lookup on ourself
+	u.mu.Lock()
 	contacts, _, _ := u.Lookup(u.Self.ID)
+	u.mu.Unlock()
 
 	return contacts
 }
@@ -90,7 +93,6 @@ func (kademlia *Kademlia) LookupContact(target *KademliaID) (k_nodes []Contact) 
 func (kademlia *Kademlia) LookupData(hash string) ([]byte, Contact) {
 	net := &Network{}
 	net.Node = kademlia
-	var waitgroup sync.WaitGroup
 
 	hashID := NewKademliaID(hash) // create kademlia ID from the hashed data
 	shortlist := kademlia.NewShortList(hashID)
@@ -108,7 +110,7 @@ func (kademlia *Kademlia) LookupData(hash string) ([]byte, Contact) {
 		}
 	}
 
-	data, con := shortlist.updateLookupData(hash, ch, targetData, dataContactCh, *net, waitgroup)
+	data, con := shortlist.updateLookupData(hash, ch, targetData, dataContactCh, *net)
 
 	// creating the resultdata, con :=shortlist.updateLook list
 	return data, con
@@ -125,7 +127,6 @@ func PerformLookup(targetID KademliaID, receiver Contact, net Network, ch chan [
 // target -> the target data
 func PerformLookupData(hash string, receiver Contact, net Network, ch chan []Contact, target chan []byte, dataContactCh chan Contact) {
 	targetData, reslist, dataContact, _ := net.SendFindDataMessage(&receiver, hash)
-	// log.Printf("Lookup data", v ...any)
 	ch <- reslist
 	target <- targetData
 	dataContactCh <- dataContact
@@ -135,11 +136,15 @@ func (kademlia *Kademlia) Store(data []byte) (key string) {
 	net := &Network{}
 	net.Node = kademlia
 	key = utils.Hash(string(data))
+
+	kademlia.mu.Lock()
 	kademlia.Datastore.putData(key, data)
 	hashID := NewKademliaID(key)
-
 	contactsToStore, _, _ := kademlia.Lookup(hashID)
+	kademlia.mu.Unlock()
+
 	for _, target := range contactsToStore {
+
 		net.SendStoreMessage(data, &target)
 
 		// U2.
@@ -153,6 +158,7 @@ func (kademlia *Kademlia) Store(data []byte) (key string) {
 					if kademlia.Datastore.checkForgetFlag(key) {
 						return
 					}
+
 					refreshedContact, err := net.SendRefreshMessage(&contact, key)
 					if err != nil {
 						log.Printf("Error when refreshing: %v", err)

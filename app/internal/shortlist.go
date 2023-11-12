@@ -2,7 +2,6 @@ package internal
 
 import (
 	"sort"
-	"sync"
 )
 
 type ShortList struct {
@@ -79,7 +78,7 @@ func (shortlist *ShortList) updateShortList(targetID KademliaID, ch chan []Conta
 	}
 }
 
-func (shortlist *ShortList) updateLookupData(hash string, ch chan []Contact, target chan []byte, dataContactCh chan Contact, net Network, wg sync.WaitGroup) ([]byte, Contact) {
+func (shortlist *ShortList) updateLookupData(hash string, ch chan []Contact, target chan []byte, dataContactCh chan Contact, net Network) ([]byte, Contact) {
 	for {
 		contacts := <-ch
 		targetData := <-target
