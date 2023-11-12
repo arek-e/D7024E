@@ -21,10 +21,8 @@ services:
         window: 10s
     networks:
       - kademlia_network
-    # environment:
-    #   - API_PORT=2337 # Set the static port inside the container
     ports:
-      - "2337-2386"
+      - "2337"
     extra_hosts:
       - "host.docker.internal:host-gateway"
 

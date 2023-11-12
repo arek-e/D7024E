@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/base64"
 	"fmt"
 	"net/http"
 
@@ -33,12 +32,6 @@ func (api *API) StartAPI(address string, exitCh chan<- struct{}) {
 		objectsGroup.POST("", api.StoreData)
 	}
 
-	// apiPort := os.Getenv("API_PORT")
-	// if apiPort == "" {
-	// 	// Handle the case where the environment variable is not set
-	// 	fmt.Println("API_PORT environment variable is not set")
-	// 	return
-	// }
 	apiPort := "2337"
 
 	ip := fmt.Sprintf("%s:%s", address, apiPort)
@@ -83,12 +76,9 @@ func (api *API) GetData(ctx *gin.Context) {
 		return
 	}
 
-	// Convert the bytes to a string
-	dataStr := base64.StdEncoding.EncodeToString(data)
-
 	// Create the response structure
 	res := GetResponse{
-		Data:    dataStr,
+		Data:    string(data),
 		Contact: contact,
 	}
 
